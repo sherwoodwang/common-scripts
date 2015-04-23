@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Copyright (c) 2015, Sherwood Wang <sherwood@wang.onl>
+# All rights reserved.
+#
+# See "COPYING" for license.
+
+# Convert prefix-style ipv4 net mask into long-form net mask,
+# e.g. "`long_net_mask 20`" -> "255.255.240.0" .
+long_net_mask () {
+	sm=$1
+	p=$((sm / 8))
+	for (( i = 0; i != p; ++i )); do
+		echo -n 255
+		if [ $i != 3 ]; then
+			echo -n .
+		fi
+	done
+
+	if [ $((sm % 8)) != 0 ]; then
+		p=$((p + 1))
+		r=0
+		for (( i = 0; i != sm % 8; ++i)); do
+			e=$((2 ** (7 - i)))
+			r=$((r + e))
+		done
+		echo -n $r
+		if [ $p != 4 ]; then
+			echo -n .
+		fi
+	fi
+
+	for (( i = p; i != 4; ++i )); do
+		echo -n 0
+		if [ $i != 3 ]; then
+			echo -n .
+		fi
+	done
+	echo
+}

@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Copyright (c) 2015, Sherwood Wang <sherwood@wang.onl>
+# All rights reserved.
+#
+# See "COPYING" for license.
+
+# Include this script in your $HOME/.bash_profile, so that after you attached
+# tmux, you may invoke "update-env" to load new environment variable values.
+
+# By default, it updates DISPLAY, SSH_ASKPASS, SSH_AUTH_SOCK, SSH_AGENT_PID,
+# SSH_CONNECTION, WINDOWID, XAUTHORITY, which are in the default value of tmux
+# update-environment option (see also tmux(1)).
+
+_update_env__setup_env() {
+	val=$1
+
+	if [ -z "$val" ]; then
+		return
+	fi
+
+	case "$val" in
+		-*)
+			unset ${val#-}
+			;;
+		*=*)
+			export "$val"
+			;;
+	esac
+}
+
+update-env() {
+	if [[ "$#" = 1 && "$1" = all ]]; then
+		tmux show-environment | {
+			while read val; do
+				_update_env__setup_env "$val"
+			done
+		}
+	else
+		if [ "$#" = 0 ]; then
+			vars="DISPLAY SSH_ASKPASS SSH_AUTH_SOCK SSH_AGENT_PID SSH_CONNECTION WINDOWID XAUTHORITY"
+		else
+			vars=$@
+		fi
+
+		for name in $vars; do
+			_update_env__setup_env "$(tmux show-environment $name)"
+		done
+	fi
+}
