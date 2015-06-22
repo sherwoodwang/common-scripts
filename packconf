@@ -1,0 +1,76 @@
+#!/bin/bash
+
+set -e
+
+if ! [ -e /etc/packconf.conf ]; then
+	cat >/etc/packconf.conf <<-EOF
+	# apt keys to be archived, these keys will be installed before
+	# \`apt-get update\'
+	apt_keys=""
+
+	# files in /etc/apt/sources.list.d to be archived, these files will be
+	# installed before \`apt-get update\'
+	apt_source_lists=""
+
+	# packages to be installed
+	packages=""
+
+	# files to be archived
+	files=""
+	EOF
+fi
+
+. /etc/packconf.conf
+
+mkdir -p /etc/packconf.hooks.d/pre
+mkdir -p /etc/packconf.hooks.d/post
+touch /etc/packconf.hooks.d/pre/.placeholder
+touch /etc/packconf.hooks.d/post/.placeholder
+
+set -C
+umask 0077
+if [ -e confpack.sh ]; then
+	rm confpack.sh
+fi
+
+{
+	echo '#!/bin/bash -e' 
+
+	for name in $apt_keys; do
+		echo 'apt-key add - <<EOF'
+		apt-key export "$name"
+		echo 'EOF'
+	done
+
+	echo 'mkdir -p etc/apt/sources.list.d'
+	for name in $apt_source_lists; do
+		echo 'cat >etc/apt/sources.list.d/'$name'.list <<EOF'
+		cat <"/etc/apt/sources.list.d/${name}.list"
+		echo 'EOF'
+	done
+
+	echo 'apt-get update'
+	echo 'apt-get install aptitude' 
+	echo aptitude install $packages
+
+	echo '(base64 -d | tar -xJ) <<EOF'
+	tar -cJ /etc/packconf.conf /etc/packconf.hooks.d | base64
+	echo EOF
+
+	echo 'for hook in etc/packconf.hooks.d/pre/*; do'
+	echo '	if [ -x "$hook" ]; then'
+	echo '		"$hook"'
+	echo '	fi'
+	echo 'done'
+
+	echo '(base64 -d | tar -xJ) <<EOF'
+	tar -cJ $files | base64
+	echo EOF
+
+	echo 'for hook in etc/packconf.hooks.d/post/*; do'
+	echo '	if [ -x "$hook" ]; then'
+	echo '		"$hook"'
+	echo '	fi'
+	echo 'done'
+} >confpack.sh
+chmod +x confpack.sh
