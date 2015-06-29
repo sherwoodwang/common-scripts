@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Copyright (c) 2015, Sherwood Wang <sherwood@wang.onl>
+# All rights reserved.
+#
+# See "COPYING" for license.
+
+# pack configurations specified by /etc/packconf.conf to a shell script named "confpack.sh".
+
 set -e
 
 if ! [ -e /etc/packconf.conf ]; then
