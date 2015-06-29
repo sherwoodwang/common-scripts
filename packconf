@@ -51,7 +51,14 @@ fi
 
 	echo 'apt-get update'
 	echo 'apt-get install aptitude' 
-	echo aptitude install $packages
+
+	echo 'while ! aptitude install '$packages'; do'
+	echo '	echo "aptitude install failed. Try again? (yes/no)"'
+	echo '	read answer'
+	echo '	if [ "$answer" = "no" ]; then'
+	echo '		break'
+	echo '	fi'
+	echo 'done'
 
 	echo '(base64 -d | tar -xJ) <<EOF'
 	tar -cJ /etc/packconf.conf /etc/packconf.hooks.d | base64
