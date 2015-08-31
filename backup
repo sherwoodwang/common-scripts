@@ -1,4 +1,4 @@
-#!/bin/bash -e --
+#!/bin/bash -e
 
 # Copyright (c) 2015, Sherwood Wang <sherwood@wang.onl>
 # All rights reserved.
