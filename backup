@@ -32,11 +32,21 @@ exec <&3-
 
 if [ -e "$package/serial" ]; then
 	serial=$(<"$package/serial")
-	cp "$package/$name.$serial.snar" "$package/$name.$((++serial)).snar"
+	lastbname="$name.$serial"
+	bname="$name.$((++serial))"
+	cp "$package/$lastbname.snar" "$package/$bname.snar"
 else
 	serial=0
-	rm "$package/$name.$serial.snar" &>/dev/null || true
+	bname="$name.$serial"
+	if [ -e "$package/$bname.snar" ]; then
+		rm "$package/$bname.snar"
+	fi
 fi
 
-tar -g "$package/$name.$serial.snar" -cf "$package/$name.$serial.tar" "${args[@]}"
+timestamp=$(date +'%s')
+tar -g "$package/$bname.snar" -cf "$package/$bname.tar" "${args[@]}"
+cat <<EOF >"$package/$bname.desc"
+Created: $timestamp
+MD5: $(md5sum "$package/$bname.tar" | awk '{print $1}')
+EOF
 echo $serial>"$package/serial"
