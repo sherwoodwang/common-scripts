@@ -1,0 +1,42 @@
+#!/bin/bash -e --
+
+# Copyright (c) 2015, Sherwood Wang <sherwood@wang.onl>
+# All rights reserved.
+#
+# See "COPYING" for license.
+
+# Copy this file into a directory, and create a file in the directory called
+# "files" which specifies files to be backed up. Run <dir>/backup to backup all
+# specified files with tar incrementally. The created tars locate in the same
+# directory.
+#
+# The first line of "files" becomes the "-C" argument to tar. The following
+# lines become the positional arguments. If a relative path is specified, it's
+# relative to the parent directory of the directory which contains this file.
+
+package="$(realpath "$(dirname "$0")")"
+name="$(basename "$package")"
+
+if ! [ -e "$package/files" ]; then
+	echo 'Please list files to be backed up' 2>&1
+	exit 1
+fi
+
+exec 3<&0 <"$package/files"
+read root
+args=(-C "$(cd $package; cd ..; realpath "$root")")
+while read fn; do
+	args+=($fn)
+done
+exec <&3-
+
+if [ -e "$package/serial" ]; then
+	serial=$(<"$package/serial")
+	cp "$package/$name.$serial.snar" "$package/$name.$((++serial)).snar"
+else
+	serial=0
+	rm "$package/$name.$serial.snar" &>/dev/null || true
+fi
+
+tar -g "$package/$name.$serial.snar" -cf "$package/$name.$serial.tar" "${args[@]}"
+echo $serial>"$package/serial"
