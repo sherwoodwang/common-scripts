@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Copyright (c) 2015, Sherwood Wang <sherwood@wang.onl>
+# All rights reserved.
+#
+# See "COPYING" for license.
+
+# Usage:
+#
+# All changes to directories which are listed in $protected will be saved into
+# sandbox which is located at $sandbox, if sandbox is enabled.
+#
+# Directories which are listed in $persistent will be bind-mounted
+# corresponding directories at $persistentfs. And all files in them are also
+# moved into $persistentfs, when sandbox is disabled.
+#
+# To enable sandbox, `touch "$sandbox_switch"`. To disable sandbox, delete that file.
+
+sandbox=/mutable/sandbox
+protected=(/etc /home /root /srv /tmp /var)
+sandbox_switch=/mutable/enable_sandbox
+
+persistentfs=/mutable
+persistent=(/var/log /var/backup)
+
+if ! [ -e "$sandbox_switch" ]; then
+	mount -o remount,rw /
+
+	for dir in "${persistent[@]}"; do
+		mkdir -p "$persistentfs${dir}"
+		cp -t "$persistentfs${dir}" -ar "${dir}/."
+		rm -rf "${dir}"
+		mkdir "${dir}"
+		mount --bind "$persistentfs${dir}" "${dir}"
+	done
+
+	exit 0
+fi
+
+rm -rf "$sandbox"
+mkdir  "$sandbox"
+
+mkdir "$sandbox/orig"
+mkdir "$sandbox/store"
+for dir in "${protected[@]}"; do
+	mkdir "$sandbox/orig${dir}"
+	mkdir "$sandbox/store${dir}"
+	chmod --reference="${dir}" "$sandbox/store${dir}"
+	chown --reference="${dir}" "$sandbox/store${dir}"
+	mkdir "$sandbox/store${dir}.work"
+	mount --bind "${dir}" "$sandbox/orig${dir}"
+	mount --make-private "$sandbox/orig${dir}"
+	mount -t overlay -o "lowerdir=$sandbox/orig${dir},upperdir=$sandbox/store${dir},workdir=$sandbox/store/${dir}.work" overlay "${dir}"
+done
+
+for dir in "${persistent[@]}"; do
+	mkdir -p "$persistentfs${dir}"
+	mount --bind "$persistentfs${dir}" "${dir}"
+done

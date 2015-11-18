@@ -1,0 +1,12 @@
+[Unit]
+DefaultDependencies=false
+After=mutable.mount
+Requires=mutable.mount
+Before=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/set-sandbox
+
+[Install]
+WantedBy=local-fs.target
