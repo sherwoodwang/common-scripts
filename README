@@ -4,3 +4,13 @@ I'm collecting some more from the boxes I administrates. Most scripts were
 written for specific purposes. After I clean them up and add enough comments, I
 put them here.
 
+Usages are described in each file. Here is an index:
+	backup		manages incremental backups with tar.
+	funcs		includes functions which may be useful.
+	packconf	helps create a bash script which is an installer for
+			configuration files which are taken from the current
+			system.
+	sandbox/	turns a Debian into sandbox mode, so that the root
+			filesystem could be read-only.
+	update-env	can be used with tmux to update environment variables
+			after each attaching.
