@@ -1,0 +1,44 @@
+#!/bin/bash -e
+
+file="$1"
+
+__uc_copy=yes
+
+exec 3<&0 <"$file" 4>&1 >"$file.new"
+while IFS= read -r __uc_line; do
+	if [ "$__uc_copy" = no ]; then
+		if [ "$__uc_eob" == "$__uc_line" ]; then
+			__uc_copy=yes
+		else
+			continue
+		fi
+	fi
+	if [ -n "$__uc_cmds" ] && [[ ! ( $__uc_line =~ \#\#\>.* ) ]] ; then
+		eval "$__uc_cmds"
+		__uc_cmds=
+	fi
+	case "$__uc_line" in
+		\#\#\>*)
+			__uc_cmd="${__uc_line#\#\#\>}"
+			if [ -z "$__uc_cmds" ]; then
+				__uc_cmds="$__uc_cmd"
+			else
+				__uc_cmds="$__uc_cmds"$'\n'"$__uc_cmd"
+			fi
+			;;
+		\#\#\ BEGIN\ *)
+			__uc_copy=no
+			__uc_cmd=${__uc_line#\#\# BEGIN }
+			__uc_eob="## END $__uc_cmd"
+			echo "$__uc_line"
+			eval "$__uc_cmd"
+			;;
+	esac
+	if [ "$__uc_copy" = yes ]; then
+		echo "$__uc_line"
+	fi
+done
+exec <&3 3<&- >&4 4>&-
+
+cp "$file" "$file.old"
+mv "$file.new" "$file"
