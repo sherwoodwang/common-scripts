@@ -1,8 +1,28 @@
 #!/bin/bash -e
 
-file="$1"
+__uc_prefix='##'
 
+while [ "$#" != 0 ]; do
+
+while getopts 'c:' arg; do
+	case "$arg" in
+		c)
+			__uc_prefix="$OPTARG"
+	esac
+done
+
+shift $((OPTIND-1))
+
+file=$1
+
+shift
+
+(
+
+__uc_cmd=
+__uc_cmds=
 __uc_copy=yes
+__uc_eob=
 
 exec 3<&0 <"$file" 4>&1 >"$file.new"
 while IFS= read -r __uc_line; do
@@ -13,23 +33,29 @@ while IFS= read -r __uc_line; do
 			continue
 		fi
 	fi
-	if [ -n "$__uc_cmds" ] && [[ ! ( $__uc_line =~ ^\#\#\>.* ) ]] ; then
-		eval "$__uc_cmds"
-		__uc_cmds=
+	if [ -n "$__uc_cmds" ] ; then
+		case "$__uc_line" in
+			"$__uc_prefix>"*)
+				;;
+			*)
+				eval "$__uc_cmds"
+				__uc_cmds=
+				;;
+		esac
 	fi
 	case "$__uc_line" in
-		\#\#\>*)
-			__uc_cmd="${__uc_line#\#\#\>}"
+		"$__uc_prefix>"*)
+			__uc_cmd="${__uc_line#$__uc_prefix>}"
 			if [ -z "$__uc_cmds" ]; then
 				__uc_cmds="$__uc_cmd"
 			else
 				__uc_cmds="$__uc_cmds"$'\n'"$__uc_cmd"
 			fi
 			;;
-		\#\#\ BEGIN\ *)
+		"$__uc_prefix BEGIN "*)
 			__uc_copy=no
-			__uc_cmd=${__uc_line#\#\# BEGIN }
-			__uc_eob="## END $__uc_cmd"
+			__uc_cmd=${__uc_line#$__uc_prefix BEGIN }
+			__uc_eob="$__uc_prefix END $__uc_cmd"
 			echo "$__uc_line"
 			eval "$__uc_cmd"
 			;;
@@ -42,3 +68,7 @@ exec <&3 3<&- >&4 4>&-
 
 cp "$file" "$file.old"
 mv "$file.new" "$file"
+
+)
+
+done
