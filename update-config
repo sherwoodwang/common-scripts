@@ -1,13 +1,17 @@
 #!/bin/bash -e
 
 __uc_prefix='##'
+__uc_backup=yes
 
 while [ "$#" != 0 ]; do
 
-while getopts 'c:' arg; do
+while getopts 'c:x' arg; do
 	case "$arg" in
 		c)
 			__uc_prefix="$OPTARG"
+			;;
+		x)
+			__uc_backup=no
 	esac
 done
 
@@ -66,7 +70,10 @@ while IFS= read -r __uc_line; do
 done
 exec <&3 3<&- >&4 4>&-
 
-cp "$file" "$file.old"
+if [ "$__uc_backup" = yes ]; then
+	cp "$file" "$file.old"
+fi
+
 mv "$file.new" "$file"
 
 )
